@@ -1,0 +1,21 @@
+{
+  "manifest_version": 3,
+  "name": "Hola Mundo",
+  "version": "1.0",
+  "description": "Una extensión que muestra el usuario de GitHub logueado",
+  "permissions": ["storage", "webRequest"],
+  "host_permissions": ["https://github.com/*", "https://api.github.com/*"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://github.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Hola Mundo"
+  }
+}

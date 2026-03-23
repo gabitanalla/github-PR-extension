@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hola Mundo</title>
+    <style>
+      body {
+        width: 350px;
+        padding: 20px;
+        font-family: Arial, sans-serif;
+        text-align: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        margin: 0;
+        border-radius: 8px;
+      }
+      h1 {
+        color: white;
+        margin: 0;
+        font-size: 28px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+      p {
+        color: white;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+      #reposContainer {
+        margin-top: 15px;
+      }
+      select {
+        width: 100%;
+        padding: 8px;
+        margin-top: 10px;
+        border: none;
+        border-radius: 4px;
+        font-size: 13px;
+        cursor: pointer;
+        background-color: white;
+        color: #333;
+      }
+      select:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+      }
+      select:focus {
+        outline: none;
+        box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+      }
+      .loading {
+        color: white;
+        font-size: 12px;
+        margin-top: 10px;
+      }
+      .error {
+        color: #ffcccc;
+        font-size: 12px;
+        margin-top: 10px;
+      }
+      #tokenContainer {
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.3);
+      }
+      #tokenContainer label {
+        color: white;
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+      }
+      #tokenInput {
+        width: 100%;
+        padding: 8px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        box-sizing: border-box;
+        margin-bottom: 8px;
+      }
+      #tokenInput::placeholder {
+        color: #999;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 5px;
+        border: none;
+        border-radius: 4px;
+        font-size: 12px;
+        cursor: pointer;
+        background-color: #4caf50;
+        color: white;
+        transition: background-color 0.3s;
+      }
+      button:hover {
+        background-color: #45a049;
+      }
+      button.danger {
+        background-color: #f44336;
+      }
+      button.danger:hover {
+        background-color: #da190b;
+      }
+      .token-status {
+        color: #90ee90;
+        font-size: 11px;
+        margin-top: 5px;
+      }
+      #prBadge {
+        display: none;
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        background-color: #ff4444;
+        color: white;
+        border-radius: 50%;
+        width: 24px;
+        height: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+      }
+      #prBadge.show {
+        display: flex;
+      }
+      h1 {
+        position: relative;
+        display: inline-block;
+      }
+      #prContainer {
+        margin-top: 15px;
+        padding: 12px;
+        background-color: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        display: none;
+      }
+      #prContainer.show {
+        display: block;
+      }
+      #prContainer h3 {
+        color: white;
+        margin: 0 0 10px 0;
+        font-size: 14px;
+      }
+      .pr-item {
+        background-color: rgba(255, 255, 255, 0.05);
+        padding: 8px;
+        margin-bottom: 8px;
+        border-radius: 3px;
+        color: #e0e0e0;
+        font-size: 11px;
+        border-left: 3px solid #ffa500;
+      }
+      .pr-title {
+        color: white;
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+      .pr-info {
+        color: #aaa;
+        font-size: 10px;
+      }
+      .pr-link {
+        color: #64b5f6;
+        text-decoration: none;
+        cursor: pointer;
+      }
+      .pr-link:hover {
+        text-decoration: underline;
+      }
+      #prStatus {
+        color: #90ee90;
+        font-size: 11px;
+      }
+      #prStatus.loading {
+        color: #ffa500;
+      }
+      #prStatus.error {
+        color: #ff6b6b;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>¡Hola Mundo!<span id="prBadge"></span></h1>
+    <div id="userContainer">
+      <p id="userStatus">Cargando...</p>
+      <div id="reposContainer" style="display: none">
+        <label
+          for="repoSelect"
+          style="color: white; display: block; margin-top: 10px"
+        >
+          <strong>Repositorios:</strong>
+        </label>
+        <select id="repoSelect">
+          <option value="">Selecciona un repositorio...</option>
+        </select>
+        <div id="prContainer">
+          <h3>Pull Requests pendientes de revisión:</h3>
+          <div id="prStatus"></div>
+          <div id="prList"></div>
+        </div>
+      </div>
+      <div id="tokenContainer">
+        <label for="tokenInput">
+          <strong>Token Personal (PAT):</strong>
+        </label>
+        <input
+          id="tokenInput"
+          type="password"
+          placeholder="Ingresa tu GitHub Personal Access Token"
+        />
+        <button id="saveTokenBtn">Guardar Token</button>
+        <button id="clearTokenBtn" class="danger" style="display: none">
+          Eliminar Token
+        </button>
+        <div id="tokenStatus" class="token-status"></div>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>
