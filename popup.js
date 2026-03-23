@@ -34,13 +34,13 @@ document.addEventListener("DOMContentLoaded", function () {
     } else {
       // Si no hay usuario guardado, intenta obtenerlo de la API de GitHub
       const headers = {
-        Accept: "application/vnd.github.v3+json",
+        Accept: CONFIG.GITHUB_ACCEPT_HEADER,
       };
       if (currentToken) {
         headers.Authorization = `Bearer ${currentToken}`;
       }
 
-      fetch("https://api.github.com/user", { headers })
+      fetch(ENDPOINTS.USER, { headers })
         .then((response) => {
           if (response.ok) {
             return response.json();
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function () {
           fetchUserRepositories(currentUsername);
         })
         .catch((error) => {
-          userStatus.innerHTML = `<strong>No hay usuario logueado</strong><br><small style="font-size: 12px;">Visita github.com e inicia sesión</small>`;
+          userStatus.innerHTML = `<strong>${MESSAGES.USER.NOT_LOGGED_IN}</strong><br><small style="font-size: 12px;">${MESSAGES.USER.VISIT_GITHUB}</small>`;
           userStatus.style.color = "#fff";
           userStatus.style.marginTop = "15px";
         });
@@ -63,21 +63,20 @@ document.addEventListener("DOMContentLoaded", function () {
   });
 
   function displayUser(username) {
-    userStatus.innerHTML = `<strong>Usuario GitHub:</strong><br>${username}`;
+    userStatus.innerHTML = `<strong>${MESSAGES.USER.LOGGED_IN}</strong><br>${username}`;
     userStatus.style.color = "#fff";
     userStatus.style.marginTop = "15px";
   }
 
   function updateTokenUI() {
     if (currentToken) {
-      tokenInput.value = "";
-      tokenInput.placeholder = "Token guardado ✓";
-      tokenInput.disabled = true;
+      tokenInput.style.display = "none";
       saveTokenBtn.style.display = "none";
       clearTokenBtn.style.display = "block";
-      tokenStatus.textContent = "Token autenticado";
+      tokenStatus.textContent = MESSAGES.TOKEN.AUTHENTICATED;
     } else {
-      tokenInput.placeholder = "Ingresa tu GitHub Personal Access Token";
+      tokenInput.style.display = "block";
+      tokenInput.placeholder = MESSAGES.TOKEN.PLACEHOLDER;
       tokenInput.disabled = false;
       saveTokenBtn.style.display = "block";
       clearTokenBtn.style.display = "none";
@@ -88,41 +87,41 @@ document.addEventListener("DOMContentLoaded", function () {
   saveTokenBtn.addEventListener("click", function () {
     const token = tokenInput.value.trim();
     if (!token) {
-      tokenStatus.textContent = "Error: Ingresa un token válido";
-      tokenStatus.style.color = "#ff6b6b";
+      tokenStatus.textContent = MESSAGES.TOKEN.ERROR_EMPTY;
+      tokenStatus.style.color = MESSAGES.STATUS.ERROR;
       return;
     }
 
     // Validar token
     const headers = {
-      Accept: "application/vnd.github.v3+json",
+      Accept: CONFIG.GITHUB_ACCEPT_HEADER,
       Authorization: `Bearer ${token}`,
     };
 
-    fetch("https://api.github.com/user", { headers })
+    fetch(ENDPOINTS.USER, { headers })
       .then((response) => {
         if (response.ok) {
           // Token válido
           chrome.storage.local.set({ gitHubToken: token });
           currentToken = token;
           updateTokenUI();
-          tokenStatus.textContent = "Token guardado exitosamente";
-          tokenStatus.style.color = "#90EE90";
+          tokenStatus.textContent = MESSAGES.TOKEN.SAVED;
+          tokenStatus.style.color = MESSAGES.STATUS.SUCCESS;
           // Recargar repositorios con el nuevo token
           if (currentUsername) {
             fetchUserRepositories(currentUsername);
           }
         } else if (response.status === 401) {
-          tokenStatus.textContent = "Error: Token inválido";
-          tokenStatus.style.color = "#ff6b6b";
+          tokenStatus.textContent = MESSAGES.TOKEN.ERROR_INVALID;
+          tokenStatus.style.color = MESSAGES.STATUS.ERROR;
         } else {
-          tokenStatus.textContent = "Error al validar token";
-          tokenStatus.style.color = "#ff6b6b";
+          tokenStatus.textContent = MESSAGES.TOKEN.ERROR_VALIDATION;
+          tokenStatus.style.color = MESSAGES.STATUS.ERROR;
         }
       })
       .catch((error) => {
-        tokenStatus.textContent = "Error de conexión";
-        tokenStatus.style.color = "#ff6b6b";
+        tokenStatus.textContent = MESSAGES.TOKEN.ERROR_CONNECTION;
+        tokenStatus.style.color = MESSAGES.STATUS.ERROR;
       });
   });
 
@@ -131,8 +130,8 @@ document.addEventListener("DOMContentLoaded", function () {
     currentToken = null;
     tokenInput.value = "";
     updateTokenUI();
-    tokenStatus.textContent = "Token eliminado";
-    tokenStatus.style.color = "#ffa500";
+    tokenStatus.textContent = MESSAGES.TOKEN.DELETED;
+    tokenStatus.style.color = MESSAGES.STATUS.WARNING;
     // Recargar repositorios sin token
     if (currentUsername) {
       fetchUserRepositories(currentUsername);
@@ -141,7 +140,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function getHeaders() {
     const headers = {
-      Accept: "application/vnd.github.v3+json",
+      Accept: CONFIG.GITHUB_ACCEPT_HEADER,
     };
     if (currentToken) {
       headers.Authorization = `Bearer ${currentToken}`;
@@ -150,7 +149,7 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function fetchUserRepositories(username) {
-    repoSelect.innerHTML = '<option value="">Cargando repositorios...</option>';
+    repoSelect.innerHTML = `<option value="">${MESSAGES.REPOSITORIES.LOADING}</option>`;
     repoSelect.disabled = true;
 
     // Obtener todos los repositorios del usuario autenticado
@@ -158,18 +157,17 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchAllUserRepos([])
       .then((repositories) => {
         if (repositories.length === 0) {
-          repoSelect.innerHTML =
-            '<option value="">No se encontraron repositorios</option>';
+          repoSelect.innerHTML = `<option value="">${MESSAGES.REPOSITORIES.NOT_FOUND}</option>`;
           repoSelect.disabled = true;
         } else {
           // Ordenar por estrellas descendente
           const sortedRepos = repositories.sort((a, b) => b.stars - a.stars);
 
-          repoSelect.innerHTML =
-            '<option value="">Selecciona un repositorio...</option>';
+          repoSelect.innerHTML = `<option value="">${MESSAGES.REPOSITORIES.SELECT}</option>`;
           sortedRepos.forEach((repo) => {
             const option = document.createElement("option");
             option.value = repo.url;
+            option.selected = false;
             option.textContent = `${repo.fullName} (⭐ ${repo.stars})`;
             repoSelect.appendChild(option);
           });
@@ -213,14 +211,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     username: currentUsername,
                   },
                   (response) => {
-                    console.log("Repo guardado en background");
+                    console.log(MESSAGES.LOG.REPO_SAVED);
                   },
                 );
                 fetchPullRequestsForReview(selectedRepo);
                 // Iniciar revisión periódica solo para este repo
                 startPeriodicPRCheckForRepo(selectedRepo);
               }
-              this.value = "";
             }
           });
         }
@@ -229,16 +226,14 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .catch((error) => {
         console.error("Error:", error);
-        repoSelect.innerHTML =
-          '<option value="">Error al cargar repositorios</option>';
+        repoSelect.innerHTML = `<option value="">${MESSAGES.REPOSITORIES.ERROR}</option>`;
         repoSelect.disabled = true;
         reposContainer.style.display = "block";
       });
 
     // Función recursiva para obtener todos los repositorios con paginación
     function fetchAllUserRepos(allRepos, page = 1) {
-      const perPage = 100;
-      const url = `https://api.github.com/user/repos?per_page=${perPage}&page=${page}&sort=updated&direction=desc&type=all`;
+      const url = getUserReposUrl(CONFIG.REPOS_PER_PAGE, page);
 
       return fetch(url, {
         headers: getHeaders(),
@@ -247,11 +242,9 @@ document.addEventListener("DOMContentLoaded", function () {
           if (response.ok) {
             return response.json();
           } else if (response.status === 401) {
-            throw new Error(
-              "No autenticado. Por favor, proporciona un token válido.",
-            );
+            throw new Error(MESSAGES.AUTH.NOT_AUTH_API);
           } else {
-            throw new Error("Error al obtener repositorios");
+            throw new Error(MESSAGES.AUTH.ERROR_LOADING);
           }
         })
         .then((data) => {
@@ -269,7 +262,7 @@ document.addEventListener("DOMContentLoaded", function () {
           const combinedRepos = [...allRepos, ...repos];
 
           // Verificar si hay más páginas
-          if (items.length === perPage) {
+          if (items.length === CONFIG.REPOS_PER_PAGE) {
             return fetchAllUserRepos(combinedRepos, page + 1);
           }
 
@@ -280,22 +273,21 @@ document.addEventListener("DOMContentLoaded", function () {
 
   function fetchPullRequestsForReview(repo) {
     prContainer.classList.add("show");
-    prStatus.textContent = "Buscando PRs...";
+    prStatus.textContent = MESSAGES.PR.SEARCHING;
     prStatus.classList.add("loading");
     prList.innerHTML = "";
 
     // Verificar si hay token para repositorios privados
     if (repo.isPrivate && !currentToken) {
-      prStatus.textContent =
-        "⚠️ Se requiere un token PAT para acceder a repositorios privados";
+      prStatus.textContent = MESSAGES.PR.PRIVATE_REPO_WARNING;
       prStatus.classList.add("error");
-      prStatus.style.color = "#ffa500";
+      prStatus.style.color = MESSAGES.STATUS.WARNING;
       prList.innerHTML = "";
       return;
     }
 
     const [owner, repoName] = repo.fullName.split("/");
-    const url = `https://api.github.com/search/issues?q=repo:${owner}/${repoName}+is:pr+is:open+review-requested:${currentUsername}`;
+    const url = getSearchPRsUrl(owner, repoName, currentUsername);
     fetch(url, {
       headers: getHeaders(),
     })
@@ -303,15 +295,15 @@ document.addEventListener("DOMContentLoaded", function () {
         if (response.ok) {
           return response.json();
         } else if (response.status === 403) {
-          throw new Error(
-            "Acceso denegado. Verifica que tu token tenga permisos suficientes.",
-          );
+          throw new Error(MESSAGES.PR.ACCESS_DENIED);
         } else if (response.status === 404) {
-          throw new Error(
-            "Repositorio no encontrado. Verifica que tengas acceso.",
-          );
+          throw new Error(MESSAGES.PR.REPO_NOT_FOUND);
         } else {
-          throw new Error(`Error ${response.status} al obtener PRs`);
+          throw new Error(
+            formatMessage(MESSAGES.PR.ERROR_STATUS, {
+              status: response.status,
+            }),
+          );
         }
       })
       .then((data) => {
@@ -321,13 +313,15 @@ document.addEventListener("DOMContentLoaded", function () {
         prStatus.classList.remove("loading");
 
         if (prsNeedingReview.length === 0) {
-          prStatus.textContent = "✓ No hay PRs pendientes de revisión";
+          prStatus.textContent = MESSAGES.PR.NO_PENDING;
           prStatus.classList.remove("error");
-          prStatus.style.color = "#90EE90";
+          prStatus.style.color = MESSAGES.STATUS.SUCCESS;
           prList.innerHTML = "";
         } else {
-          prStatus.textContent = `📋 ${prsNeedingReview.length} PR(s) pendiente(s):`;
-          prStatus.style.color = "#ffa500";
+          prStatus.textContent = formatMessage(MESSAGES.PR.PENDING, {
+            count: prsNeedingReview.length,
+          });
+          prStatus.style.color = MESSAGES.STATUS.WARNING;
           prStatus.classList.remove("error");
           prList.innerHTML = "";
 
@@ -341,7 +335,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const prInfo = document.createElement("div");
             prInfo.className = "pr-info";
             prInfo.innerHTML = `
-              <div>Por: <strong>${pr.user.login}</strong></div>
+              <div>${MESSAGES.PR.BY} <strong>${pr.user.login}</strong></div>
               <div style="margin-top: 4px;">
                 <a href="${pr.html_url}" target="_blank" class="pr-link">#${pr.number}</a> - 
                 <span>${new Date(pr.created_at).toLocaleDateString()}</span>
@@ -356,9 +350,9 @@ document.addEventListener("DOMContentLoaded", function () {
       })
       .catch((error) => {
         console.error("Error:", error);
-        prStatus.textContent = error.message || "Error al cargar PRs";
+        prStatus.textContent = error.message || MESSAGES.PR.ERROR;
         prStatus.classList.add("error");
-        prStatus.style.color = "#ff6b6b";
+        prStatus.style.color = MESSAGES.STATUS.ERROR;
         prList.innerHTML = "";
       });
   }
@@ -386,39 +380,49 @@ document.addEventListener("DOMContentLoaded", function () {
     checkSingleRepoPRs(repo);
 
     // Luego revisar cada 10 segundos solo este repositorio
-    prCheckInterval = setInterval(() => checkSingleRepoPRs(repo), 10000);
+    prCheckInterval = setInterval(
+      () => checkSingleRepoPRs(repo),
+      CONFIG.CHECK_INTERVAL,
+    );
   }
 
   function checkSingleRepoPRs(repo) {
     if (!currentUsername) {
+      console.warn("Username not set, cannot check PRs");
       return;
     }
 
     // No hacer solicitud a repos privados sin token
     if (repo.isPrivate && !currentToken) {
+      console.warn("Private repo without token, skipping check");
       updatePRBadge(0);
       return;
     }
 
     const [owner, repoName] = repo.fullName.split("/");
-    const url = `https://api.github.com/search/issues?q=repo:${owner}/${repoName}+is:pr+is:open+review-requested:${currentUsername}`;
+    const url = getSearchPRsUrl(owner, repoName, currentUsername);
+    console.log("Checking PRs for:", repo.fullName, "URL:", url);
 
     fetch(url, {
       headers: getHeaders(),
     })
       .then((response) => {
+        console.log("PR check response status:", response.status);
         if (response.ok) {
           return response.json();
         } else {
+          console.warn("PR check failed with status:", response.status);
           return { items: [] };
         }
       })
       .then((data) => {
         // El endpoint de búsqueda ya filtra por review-requested
         const prsNeedingReview = data.items || [];
+        console.log("PRs found:", prsNeedingReview.length);
         updatePRBadge(prsNeedingReview.length);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Error checking PRs:", error);
         updatePRBadge(0);
       });
   }
@@ -427,7 +431,7 @@ document.addEventListener("DOMContentLoaded", function () {
     if (count > 0) {
       prBadge.classList.add("show");
       prBadge.textContent = count > 99 ? "99+" : count;
-      prBadge.title = `${count} PR(s) pendiente(s) de revisar`;
+      prBadge.title = formatMessage(MESSAGES.PR.BADGE_TITLE, { count: count });
     } else {
       prBadge.classList.remove("show");
       prBadge.textContent = "";
@@ -439,7 +443,7 @@ document.addEventListener("DOMContentLoaded", function () {
       { action: "updateBadge", count: count },
       (response) => {
         if (response && response.success) {
-          console.log("Badge actualizado en el icono");
+          console.log(MESSAGES.LOG.BADGE_UPDATED);
         }
       },
     );

@@ -1,4 +1,6 @@
 // Service Worker para manejar el badge del icono de la extensión
+importScripts("constants.js");
+importScripts("messages.js");
 
 let selectedRepository = null;
 let currentToken = null;
@@ -101,7 +103,7 @@ function startBackgroundPRCheck() {
   prCheckInterval = setInterval(() => {
     console.log("Verificando PRs de:", selectedRepository.fullName);
     checkBackgroundPRs();
-  }, 10000);
+  }, CONFIG.CHECK_INTERVAL);
 }
 
 function checkBackgroundPRs() {
@@ -124,20 +126,29 @@ function checkBackgroundPRs() {
 
   const [owner, repoName] = selectedRepository.fullName.split("/");
   const headers = {
-    Accept: "application/vnd.github.v3+json",
+    Accept: CONFIG.GITHUB_ACCEPT_HEADER,
   };
   if (currentToken) {
     headers.Authorization = `Bearer ${currentToken}`;
   }
 
-  const url = `https://api.github.com/search/issues?q=repo:${owner}/${repoName}+is:pr+is:open+review-requested:${currentUsername}`;
+  const url = getSearchPRsUrl(owner, repoName, currentUsername);
+  console.log(
+    "Background checking PRs. URL:",
+    url,
+    "With token:",
+    !!currentToken,
+  );
 
   fetch(url, { headers })
     .then((response) => {
       if (response.ok) {
         return response.json();
       } else {
-        console.log("Respuesta no OK:", response.status);
+        console.warn(
+          "Background PR check failed with status:",
+          response.status,
+        );
         return { items: [] };
       }
     })
@@ -161,7 +172,7 @@ function updateIconBadge(count) {
     const badgeText = count > 99 ? "99+" : count.toString();
     chrome.action.setBadgeText({ text: badgeText });
     chrome.action.setBadgeBackgroundColor({ color: "#ff4444" });
-    chrome.action.setTitle({ title: `${count} PR(s) pendiente(s) de revisar` });
+    chrome.action.setTitle({ title: `${count} PR(s) pending review` });
     console.log("Badge actualizado:", badgeText);
   } else {
     clearIconBadge();
